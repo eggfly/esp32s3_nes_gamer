@@ -2,7 +2,7 @@
 #include "cpumacro.h"
 #include "display.h"
 #include "../indev/controller.h"
-#include <SD_MMC.h>
+#include <SD.h>
 
 
 //输入设备
@@ -4058,7 +4058,7 @@ int NES_state_save(char* filename)
    // control 
    NesStateBlocks->soundRegisters[0x15] = apu.enable_reg;
 
-   //File fp = SD_MMC.open(filename, O_RDWR | O_CREAT | O_NONBLOCK);
+   //File fp = SD.open(filename, O_RDWR | O_CREAT | O_NONBLOCK);
    //fp.truncate(0); 
    //fp.write(NesStateBlocks,sizeof(NES_STATE_BLOCKS));
    //fp.close();
@@ -4070,7 +4070,7 @@ int NES_state_save(char* filename)
 int NES_state_load(char* filename) {
    NesStateBlocks = (NES_STATE_BLOCKS*)heap_caps_malloc(sizeof(NES_STATE_BLOCKS), MALLOC_CAP_SPIRAM);
 
-   File fp = SD_MMC.open(filename);
+   File fp = SD.open(filename);
    if (!fp) {
       return -1; //no save file found...
    }

@@ -6,7 +6,7 @@
 #include <driver/i2s.h>
 #include <soc/ledc_struct.h>
 #include <esp32-hal-timer.h>
-#include <SD_MMC.h>
+#include <SD.h>
 
 #include "main.h"
 #include "emucore/emucore.h"
@@ -174,7 +174,7 @@ void do_audio_frame()
 
 void task_opening_sound(void *pvParameters)
 {
-    File f = SD_MMC.open("/NES/opening.wav");
+    File f = SD.open("/NES/opening.wav");
     if (!f)
     {
         SHOW_MSG_SERIAL("No opening sound file\n")

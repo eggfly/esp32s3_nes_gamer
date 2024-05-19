@@ -1,5 +1,10 @@
 #pragma once
 #include <Arduino.h>
+#include "Adafruit_Keypad.h"
+
+
+void setup_keypad();
+bool loop_keypad(keypadEvent * event);
 
 typedef enum
 {

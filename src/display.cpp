@@ -1,12 +1,23 @@
 #include "config.h"
 #include "display.h"
-#include <Arduino_GFX_Library.h>
+// #include <Arduino_GFX_Library.h>
 #include "emucore/nes_palette.h"
+#include <TFT_eSPI.h> //https://github.com/Bodmer/TFT_eSPI
+#include "rm67162.h"
 
 #ifdef USE_DOUBLE_BUFFER_DRAW_MJPEG
 uint16_t *frame_odd_buf;
 uint16_t *frame_even_buf;
 #endif
+
+
+#define WIDTH 536
+#define HEIGHT 240
+
+#define LBW_WIDTH 320
+// WIDTH 108
+#define LEFT_MARGIN (WIDTH - LBW_WIDTH) / 2
+
 
 static uint16_t frameCacheStart = 0;                             // NES刷屏，从缓存数组第几位开始刷
 static uint16_t screenXStart = 0;                                // NES刷屏的x轴起始点
@@ -18,96 +29,41 @@ const uint32_t frameBytes = SCREEN_RES_HOR * SCREEN_RES_VER * 2; // 全屏所需
 uint8_t *SCREENMEMORY = NULL;                                    // NES屏幕缓存
 TaskHandle_t TASK_VID_HANDLE;
 
+// TFT_eSPI tft = TFT_eSPI();
+// TFT_eSprite spr = TFT_eSprite(&tft);
+
 #ifdef SCR_LCOS_HX7033
-#include <Wire.h>
+// NOP
+#else
+// Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, TFT_MISO, HSPI);
 
-Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
-    TFT_RGB_DE, TFT_RGB_VSYNC, TFT_RGB_HSYNC, TFT_RGB_PCLK,
-    TFT_RGB_B0, TFT_RGB_B1, TFT_RGB_B2, TFT_RGB_B3, TFT_RGB_B4,
-    TFT_RGB_G0, TFT_RGB_G1, TFT_RGB_G2, TFT_RGB_G3, TFT_RGB_G4, TFT_RGB_G5,
-    TFT_RGB_R0, TFT_RGB_R1, TFT_RGB_R2, TFT_RGB_R3, TFT_RGB_R4,
-    1 /* hsync_polarity */, 10 /* hsync_front_porch */, 8 /* hsync_pulse_width */, 80 /* hsync_back_porch */,
-    1 /* vsync_polarity */, 10 /* vsync_front_porch */, 8 /* vsync_pulse_width */, 60 /* vsync_back_porch */);
+// SCRGFX *gfx = new SCRGFX(bus, TFT_RST, TFT_ROTATION, TFT_IS_IPS);
 
-Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
-    SCREEN_RES_HOR, SCREEN_RES_VER, rgbpanel, 0 /* rotation */, true /* auto_flush */);
+Arduino_Canvas *gfx = new Arduino_Canvas(WIDTH - LEFT_MARGIN /* width */, HEIGHT /* height */, nullptr);
+uint8_t *swappedBuffer;
 
-#define LCOS_ADDRESS 0x48
-
-bool checkI2CDevice(int address)
+void flush_screen()
 {
-    Wire.beginTransmission(address);
-    return (Wire.endTransmission() == 0);
-}
-
-static void i2cwrite(uint8_t addr, uint8_t val)
-{
-    Wire.beginTransmission(LCOS_ADDRESS);
-    Wire.write(addr);
-    Wire.write(val);
-    Wire.endTransmission();
+    // printf("f\n");
+    swapBytes((uint8_t *)gfx->getFramebuffer(), swappedBuffer, WIDTH * HEIGHT * 2);
+    lcd_PushColors(LEFT_MARGIN, 0, WIDTH - LEFT_MARGIN, HEIGHT, (uint16_t *)swappedBuffer);
+    // lcd_PushColors(0, 0, WIDTH, HEIGHT, (uint16_t *)spr.getPointer());
 }
 
 void display_init()
 {
-    SHOW_MSG_SERIAL("Initializing RGB Panel...")
-    Wire.begin(TFT_I2C_SDA, TFT_I2C_SCL);
-    Wire.setClock(100000);
-    if (checkI2CDevice(LCOS_ADDRESS))
-    {
-        i2cwrite(0x00, 0b01010110); // R00h
-        i2cwrite(0x0A, 0xF2);
-        i2cwrite(0x0B, 0x80);
-        i2cwrite(0x0C, 0x00);
-        i2cwrite(0x0D, 0x51);
-        i2cwrite(0x0E, 0x8A);
-        i2cwrite(0x0F, 0xB2);
-        i2cwrite(0x10, 0xD8);
-        i2cwrite(0x11, 0xE5);
-        i2cwrite(0x12, 0x19);
-        i2cwrite(0x13, 0x26);
-        i2cwrite(0x14, 0x4C);
-        i2cwrite(0x15, 0x74);
-        i2cwrite(0x16, 0xAD);
-        i2cwrite(0x17, 0xFF);
-    }
-    else
-    {
-        SHOW_MSG_SERIAL("I2C Fail...");
-    }
-
-    gfx->begin(14400000L);
-    gfx->fillScreen(BLACK);
+    rm67162_init();
+    lcd_setRotation(1);
+    lcd_setBrightness(0x60);
+    // spr.createSprite(WIDTH, HEIGHT);
+    // spr.setSwapBytes(1);
+    gfx->begin();
+    gfx->setRotation(0);
+    // NO USE
+    gfx->fillScreen(RGB565(20, 20, 20));
     gfx->setTextColor(UI_TEXT_COLOR);
-#ifdef TFT_BL
-    pinMode(TFT_BL, OUTPUT);
-#ifdef TFT_BLK_ON_LOW
-    digitalWrite(TFT_BL, LOW);
-#else
-    digitalWrite(TFT_BL, HIGH);
-#endif
-#endif
-    SHOW_MSG_SERIAL("[ OK ]\n")
-}
-
-#else
-Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, TFT_MISO, HSPI);
-
-SCRGFX *gfx = new SCRGFX(bus, TFT_RST, TFT_ROTATION, TFT_IS_IPS);
-
-void display_init()
-{
-    gfx->begin(80000000L);
-#ifdef HOLOCUBIC_PLUS_BOARD
-    // 镜像+旋转
-    uint8_t r = ST7789_MADCTL_MX | ST7789_MADCTL_RGB;
-    bus->beginWrite();
-    bus->writeCommand(ST7789_MADCTL);
-    bus->write(r);
-    bus->endWrite();
-#endif
-    gfx->fillScreen(BLACK);
-    gfx->setTextColor(UI_TEXT_COLOR);
+    swappedBuffer = (uint8_t *)ps_malloc(WIDTH * HEIGHT * 2);
+    flush_screen();
 
 #ifdef TFT_BL
     pinMode(TFT_BL, OUTPUT);
@@ -127,23 +83,17 @@ void refresh_lcd(vid_notify_command_t cmd)
     xTaskNotify(TASK_VID_HANDLE, cmd, eSetValueWithOverwrite);
 }
 
+// eggfly
 static void lcd_write_frame(uint32_t target)
 {
+    // printf("lcd_write_frame, t=%d\n", target);
 #ifdef USE_DOUBLE_BUFFER_DRAW_MJPEG
     if (target == VID_DRAW_NES_FRAME)
     {
         // 刷新NES帧
-#ifdef SCR_LCOS_HX7033
         gfx->drawIndexedBitmap(screenXStart, frameCacheRowOffset, SCREENMEMORY, (uint16_t *)nes_palette_256, linePixels, frameHeight);
-#else
-        gfx->startWrite();
-        gfx->writeAddrWindow(screenXStart, 0, linePixels, frameHeight);
-        for (int32_t i = 0; i < frameHeight; i++)
-        {
-            gfx->writeIndexedPixels(SCREENMEMORY + NES_SCREEN_WIDTH * (i + frameCacheRowOffset) + frameCacheStart, (uint16_t *)nes_palette_256, linePixels);
-        }
-        gfx->endWrite();
-#endif
+        // gfx->draw16bitRGBBitmap(0, 0, (uint16_t *)SCREENMEMORY, NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT);
+        flush_screen();
     }
     else if (target == VID_DRAW_MJPEG_ODD_FRAME)
     {
@@ -155,20 +105,7 @@ static void lcd_write_frame(uint32_t target)
         // 绘制MJPEG双帧
         gfx->draw16bitRGBBitmap(0, 0, frame_even_buf, SCREEN_RES_HOR, SCREEN_RES_VER);
     }
-#else
-    // 只有NES会用到
-    // 刷新NES帧
-#ifdef SCR_LCOS_HX7033
-    gfx->drawIndexedBitmap(screenXStart, frameCacheRowOffset, SCREENMEMORY, (uint16_t *)nes_palette_256, linePixels, frameHeight);
-#else
-    gfx->startWrite();
-    gfx->writeAddrWindow(screenXStart, 0, linePixels, frameHeight);
-    for (int32_t i = 0; i < frameHeight; i++)
-    {
-        gfx->writeIndexedPixels(SCREENMEMORY + NES_SCREEN_WIDTH * (i + frameCacheRowOffset) + frameCacheStart, (uint16_t *)nes_palette_256, linePixels);
-    }
-    gfx->endWrite();
-#endif
+
 #endif
 }
 
@@ -221,6 +158,7 @@ void videoTask(void *arg)
         xResult = xTaskNotifyWait(0x00, ULONG_MAX, &taskNotifyCommand, portMAX_DELAY);
         if (xResult == pdPASS)
         {
+            // eggfly modify this
             lcd_write_frame(taskNotifyCommand);
         }
     }

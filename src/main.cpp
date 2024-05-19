@@ -28,10 +28,14 @@
 
 #include <Arduino_GFX_Library.h>
 #include <FFat.h>
-#include <SD_MMC.h>
+#include <SD.h>
+
+#include "XPowersLib.h"
 
 RUNNING_CFG cfg = {0};       // 运行中的配置
 SAVE_NVS_CFG save_cfg = {0}; // NVS读出来或者要保存的配置
+
+SPIClass SD_SPI(HSPI);
 
 void ram_status()
 {
@@ -41,10 +45,41 @@ void ram_status()
     Serial.println(ESP.getFreePsram());
 }
 
+XPowersAXP2101 PMU;
+
+void setup_pmu()
+{
+  bool result = PMU.begin(Wire, AXP2101_SLAVE_ADDRESS, I2C_SDA, I2C_SCL);
+
+  if (result == false)
+  {
+    printf("PMU is not online...\n");
+    while (1)
+    {
+      delay(50);
+    }
+  }
+
+  // Disable SPEAKER by default.
+  // PMU.disableALDO1();
+  // Enable SPEAKER by default.
+  PMU.enableALDO1();
+
+  // Enable Q10 backlight
+  PMU.enableALDO2();
+
+  printf("AXP2101 Power Initialized.\n");
+}
+
 void setup()
 {
     delay(500);
     Serial.begin(115200);
+    Wire.begin(I2C_SDA, I2C_SCL);
+    setup_pmu();
+    // Q10 backlight
+    PMU.setALDO2Voltage(2600);
+
     TaskHandle_t idle_0 = xTaskGetIdleTaskHandleForCPU(0);
     esp_task_wdt_delete(idle_0);
 
@@ -117,13 +152,13 @@ void setup()
 
     load_config();
 
-#if defined(HOLOCUBIC_PLUS_BOARD) || defined(GOD_VISION_BOARD)
-    // 小电视和神之眼由于没有GPIO板，只能启用微信控制器
-    cfg.controller = CONTROLLER_WECHAT_BLEPAD;
-#elif defined(LCOS_PROJECTOR) || defined(LBW_DEV_BOARD_MINI)
-    cfg.controller = CONTROLLER_WECHAT_BLEPAD;
-    //cfg.controller = CONTROLLER_USB_HID_KBD;
-#endif
+// #if defined(HOLOCUBIC_PLUS_BOARD) || defined(GOD_VISION_BOARD)
+//     // 小电视和神之眼由于没有GPIO板，只能启用微信控制器
+//     cfg.controller = CONTROLLER_WECHAT_BLEPAD;
+// #elif defined(LCOS_PROJECTOR) || defined(LBW_DEV_BOARD_MINI)
+//     cfg.controller = CONTROLLER_WECHAT_BLEPAD;
+//     //cfg.controller = CONTROLLER_USB_HID_KBD;
+// #endif
 
     delay(200);
 
@@ -133,13 +168,13 @@ void setup()
     // 初始化存储
     SHOW_MSG_SERIAL("Initializing SD card...")
 
-#if USE_1BIT_SDMMC
-    SD_MMC.setPins(SD_MMC_CLK_PIN, SD_MMC_CMD_PIN, SD_MMC_D0_PIN);
-#else
-    SD_MMC.setPins(SD_MMC_CLK_PIN, SD_MMC_CMD_PIN, SD_MMC_D0_PIN, SD_MMC_D1_PIN, SD_MMC_D2_PIN, SD_MMC_D3_PIN);
-#endif
+    SD_SPI.begin(SD_SCLK, SD_MISO, SD_MOSI);
 
-    if (!SD_MMC.begin("/root", USE_1BIT_SDMMC, false, SDMMC_FREQ_DEFAULT))
+    auto sd_ret = SD.begin(SD_CS, SD_SPI, 80000000);
+    Serial.print("SD.begin()=");
+    Serial.println(sd_ret);
+
+    if (!sd_ret)
     {
         SHOW_MSG_SERIAL("[ FAIL ]\n")
     }
@@ -154,7 +189,7 @@ void setup()
     if (cfg.controller != CONTROLLER_WECHAT_BLEPAD)
     {
         // 创建WIFI 任务
-        xTaskCreatePinnedToCore(task_network, "networkTask", 4096, NULL, 1, &TASK_NETWORK_HANDLE, 1);
+        // xTaskCreatePinnedToCore(task_network, "networkTask", 4096, NULL, 1, &TASK_NETWORK_HANDLE, 1);
         // WIFI蓝牙同时开会爆内存，所以当启用微信蓝牙手柄时关闭WIFI任务
     }
 

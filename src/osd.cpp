@@ -10,7 +10,7 @@
 #include "mjpeg/mjpegplayer.h"
 #include "fonts/fontPressStart2P.h"
 #include <FFat.h>
-#include <SD_MMC.h>
+#include <SD.h>
 
 FILE_OBJ *romFiles = NULL;                         // rom文件列表
 uint8_t *cachedRom = NULL;                         // 读取到PSRAM中的rom
@@ -130,7 +130,7 @@ bool list_nes_file()
     SHOW_MSG_SERIAL("Listing files...")
     uint8_t num = 0;
     cfg.loadedRomFileNames = 0;
-    File root = SD_MMC.open("/NES");
+    File root = SD.open("/NES");
     if (!root)
     {
         draw_no_tf_card(1, 2);
@@ -191,6 +191,7 @@ char *NESMENU()
     bool NamesDisplayed = false;
     while (1)
     {
+        flush_screen();
         cfg.menuPage = cfg.menuCursor / FILES_PER_PAGE;
         if (!NamesDisplayed)
         {
@@ -315,7 +316,7 @@ int getromdata(char *ROMFILENAME_)
 {
     char namebuffer[MAXFILENAME_LENGTH] = {0};
     snprintf(namebuffer, sizeof(namebuffer), "%s%s.nes", NES_FOLDER, ROMFILENAME_);
-    File fp = SD_MMC.open(namebuffer);
+    File fp = SD.open(namebuffer);
     if (!fp || fp.isDirectory())
     {
         SHOW_MSG_SERIAL("<File error>")
@@ -367,6 +368,7 @@ void nes_loop()
     // 判断自动游戏
     if (!cfg.nesEnterFlag)
     {
+#ifdef NES_AUTO_PLAY_LAST
         // 仅当第一次进入该模式才执行
         if (load_auto_play(filePath, MY_APP_NES))
         {
@@ -389,11 +391,16 @@ void nes_loop()
                 vTaskDelay(200);
             }
         }
+#endif
         cfg.nesEnterFlag = 1;
     }
+    printf("before nes while\n");
+    flush_screen();
 
     while (1)
     {
+        printf("inside nes while\n");
+
         if (NULL == selectedFilename)
         {
             selectedFilename = NESMENU();
@@ -515,6 +522,8 @@ void nes_loop()
 
         while (cfg.nesPower == 1)
         {
+            // eggfly
+            // printf("while nesPower==1\n");
             tickCount = micros();
 
 #ifdef BAT_ADC_PIN
@@ -533,6 +542,7 @@ void nes_loop()
             if (tickCount < 1000000 / NES_REFRESH_RATE)
                 vTaskDelay(1000 / NES_REFRESH_RATE - tickCount / 1000);
             shortcut_nes();
+            // flush_screen();
         }
         vTaskDelay(500);
         osd_stopsound();
@@ -560,7 +570,7 @@ bool list_mjpeg_file()
     SHOW_MSG_SERIAL("Listing files...")
     uint8_t num = 0;
     cfg.loadedMjpegFileNames = 0;
-    File root = SD_MMC.open("/mjpeg");
+    File root = SD.open("/mjpeg");
     if (!root)
     {
         draw_no_tf_card(0, 2);
@@ -852,7 +862,7 @@ void pc_monitor_loop()
         cfg.currMode = MY_APP_SETTING;
         return;
     }
-    clear_old_pc_monitor_data(); //清空缓存数据
+    clear_old_pc_monitor_data(); // 清空缓存数据
     draw_pc_monitor_ui();
     start_pc_monitor_timer();
     while (1)
@@ -1115,6 +1125,7 @@ void menu_loop()
     draw_main_menu(cfg.menuCursor);
     while (1)
     {
+        // printf("menu_loop\n");
 #ifdef BAT_ADC_PIN
         if (millis() > last_batt_ts)
         {
@@ -1181,6 +1192,7 @@ void menu_loop()
             vTaskDelay(UI_CONTROL_DEBOUNCE_MS2);
             return;
         }
+        flush_screen();
         vTaskDelay(10);
     }
 }

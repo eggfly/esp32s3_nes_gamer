@@ -22,8 +22,8 @@ const int MAX_SSID = 32;
 const int MAX_PWD = 64;
 struct
 {
-    char ssid[MAX_SSID + 1] = "";
-    char pwd[MAX_PWD + 1] = "";
+    char ssid[MAX_SSID + 1] = "MIWIFI8";
+    char pwd[MAX_PWD + 1] = "12345678";
 } WiFiData;
 
 void loadWiFiConfigFromNVS()

@@ -2,7 +2,7 @@
 #include "main.h"
 #include "MjpegClass.h"
 #include "display.h"
-#include <SD_MMC.h>
+#include <SD.h>
 #include <Arduino_GFX_Library.h>
 
 static MjpegClass mjpeg;
@@ -57,7 +57,7 @@ static int mjpegDrawCallback2(JPEGDRAW *pDraw)
 
 bool read_file(const char *filename)
 {
-    playFile = SD_MMC.open(filename, FILE_READ);
+    playFile = SD.open(filename, FILE_READ);
     if (!playFile || playFile.isDirectory())
     {
         return false;

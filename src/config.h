@@ -2,13 +2,8 @@
 #define __CONFIG_H
 #include <stdint.h>
 
-
 //五选一
-//#define LBW_GAME_DEV_BOARD
-//#define HOLOCUBIC_PLUS_BOARD
-//#define GOD_VISION_BOARD
-//#define LBW_DEV_BOARD_MINI
-#define LCOS_PROJECTOR
+#define LBW_GAME_DEV_BOARD
 
 //注意，UI只适配了320x240 和 240x240 ，其他分辨率可能会导致UI显示不全
 
@@ -17,22 +12,33 @@
 #define SCREEN_RES_HOR 320
 #define SCREEN_RES_VER 240
 
-#define SCRGFX Arduino_ST7789
+// #define SCRGFX Arduino_ST7789
 
 #define TFT_BLK_ON_LOW  // 低电平打开背光
 #define TFT_IS_IPS true // IPS屏幕
 #define TFT_ROTATION 3  // 0排线宽边向上  1顺时针旋转90 ，3 顺时针旋转270
 
-#define TFT_BL 4
-#define TFT_DC 9
-#define TFT_CS 10
-#define TFT_MOSI 11
-#define TFT_SCLK 12
-#define TFT_MISO 13
-#define TFT_RST 14
+// // #define TFT_BL 4
+// #define TFT_DC 9
+// #define TFT_CS 10
+// #define TFT_MOSI 11
+// #define TFT_SCLK 12
+// #define TFT_MISO 13
+// #define TFT_RST 14
 
-#define BAT_ADC_PIN 5
-#define TOUCH_CS 15 // 暂未使用
+#define TFT_RES               9
+#define MY_TFT_CS             21
+#define TFT_SCK               47
+
+#define TFT_QSPI_SCK          45
+#define TFT_QSPI_D0           15
+#define TFT_QSPI_D1           16
+#define TFT_QSPI_D2           17
+#define TFT_QSPI_D3           18
+
+
+// #define BAT_ADC_PIN     5
+// #define TOUCH_CS 15 // 暂未使用
 
 // 集成手柄
 #define ADC_X 1
@@ -46,11 +52,12 @@
 // USB HOST SHIELD
 // 由于库文件无法包含这个config文件，故以下定义只是证明该IO被使用
 // 实际使用需要在platform.ini的build_flag 里面增加  -DBOARD_LBW_DEV
-#define UHS_SPI_SCK 48
-#define UHS_SPI_MISO 6
-#define UHS_SPI_MOSI 7
-#define UHS_SPI_SS 3
-#define UHS_INT 45
+// #define UHS_SPI_SCK 48
+// #define UHS_SPI_MISO 6
+// #define UHS_SPI_MOSI 7
+// #define UHS_SPI_SS 3
+// #define UHS_INT 45
+
 // #define UHS_RST 46 //暂时不接这个，直接接3.3
 ///////////////////////////////////////////////
 // UHS接线图示，芯片面对人，USBA口在左边
@@ -61,19 +68,22 @@
 // 老霸王A口母座的D-，D+ 焊盘连接到模组的D- D+，模组靠5v的那个孔为D-
 ///////////////////////////////////////////////
 
-// SDMMC
-#define USE_1BIT_SDMMC true
-#define SD_MMC_D0_PIN 47
-#define SD_MMC_CLK_PIN 21
-#define SD_MMC_CMD_PIN 8
+// SD
+#define SD_CS 42
+#define SD_MOSI 41
+#define SD_MISO 39
+#define SD_SCLK 40
+
 
 #define SOUND_ENABLED true
 
+#define I2C_SDA 43
+#define I2C_SCL 44
 
 // AUDIO_i2S
-#define I2S_BCK_IO 17 // BCK
-#define I2S_WS_IO 16  // LCK
-#define I2S_DO_IO 18  // DIN
+#define I2S_BCK_IO 47 // BCK
+#define I2S_WS_IO 48  // LCK
+#define I2S_DO_IO 46  // DIN
 #define I2S_DI_IO (-1)
 
 // 输入设备
@@ -103,123 +113,6 @@
 // 老霸王开发板结束===================================
 
 
-
-#ifdef LBW_DEV_BOARD_MINI
-#define SCREEN_RES_HOR 320
-#define SCREEN_RES_VER 240
-
-#define SCRGFX Arduino_ST7789
-
-#define TFT_BLK_ON_LOW  // 低电平打开背光
-#define TFT_IS_IPS true // IPS屏幕
-#define TFT_ROTATION 3  // 0排线宽边向上  1顺时针旋转90 ，3 顺时针旋转270
-
-#define TFT_BL 2
-#define TFT_DC 4
-#define TFT_CS 41
-#define TFT_MOSI 5
-#define TFT_SCLK 42
-#define TFT_MISO 13
-#define TFT_RST 1
-
-// SDMMC
-#define USE_1BIT_SDMMC false
-#define SD_MMC_D0_PIN 46
-#define SD_MMC_D1_PIN 3
-#define SD_MMC_D2_PIN 12
-#define SD_MMC_D3_PIN 11
-#define SD_MMC_CLK_PIN 9
-#define SD_MMC_CMD_PIN 10
-
-#define SOUND_ENABLED true
-
-// AUDIO_i2S
-#define I2S_BCK_IO 39 // BCK
-#define I2S_WS_IO 40  // LCK
-#define I2S_DO_IO 38  // DIN
-#define I2S_DI_IO (-1)
-
-// 输入设备
-#endif
-
-
-#ifdef HOLOCUBIC_PLUS_BOARD
-#define SCREEN_RES_HOR 240
-#define SCREEN_RES_VER 240
-
-#define SCRGFX Arduino_ST7789
-// 低电平打开背光
-#define TFT_BLK_ON_LOW
-#define TFT_IS_IPS false
-#define TFT_ROTATION 0 // 0排线宽边向上  1顺时针旋转90 ，3 顺时针旋转270
-
-#define TFT_MISO 13
-#define TFT_SCLK 12
-#define TFT_MOSI 11
-#define TFT_CS 10
-#define TFT_DC 9
-#define TFT_RST 14
-#define TFT_BL 4
-
-#define USE_1BIT_SDMMC true
-#define SD_MMC_D0_PIN 40
-#define SD_MMC_CLK_PIN 2
-#define SD_MMC_CMD_PIN 1
-
-#define SOUND_ENABLED false
-
-#endif
-
-#ifdef GOD_VISION_BOARD
-#define SCREEN_RES_HOR 240
-#define SCREEN_RES_VER 240
-
-#define SCRGFX Arduino_GC9A01
-
-#define TFT_IS_IPS true
-#define TFT_ROTATION 0
-
-#define TFT_BL 5
-#define TFT_DC 21
-#define TFT_CS 14
-#define TFT_MOSI 11
-#define TFT_SCLK 12
-#define TFT_MISO -1
-#define TFT_RST -1
-
-// SDMMC
-#define USE_1BIT_SDMMC false
-#define SD_MMC_D0_PIN 39
-#define SD_MMC_D1_PIN 40
-#define SD_MMC_D2_PIN 2
-#define SD_MMC_D3_PIN 42
-#define SD_MMC_CLK_PIN 41
-#define SD_MMC_CMD_PIN 38
-
-// 老款S3神之眼
-#if 0
-#define TFT_BL 14
-#define TFT_DC 10
-#define TFT_CS 11
-#define TFT_MOSI 13
-#define TFT_SCLK 12
-#define TFT_MISO -1
-#define TFT_RST 21
-
-// SDMMC
-#define USE_1BIT_SDMMC true
-#define SD_MMC_D0_PIN 40
-#define SD_MMC_CLK_PIN 41
-#define SD_MMC_CMD_PIN 42
-#endif
-
-#define SOUND_ENABLED false
-
-#endif
-
-#ifdef LCOS_PROJECTOR
-#include "hw_lcos_projector.h"
-#endif
 
 
 
@@ -291,6 +184,8 @@
 
 // NES模拟器相关定义=============================================
 #define NES_FOLDER ("/NES/")
+
+// #define NES_AUTO_PLAY_LAST
 
 #define HOST_LITTLE_ENDIAN
 #define ZERO_LENGTH 0
