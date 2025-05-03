@@ -33,8 +33,23 @@ typedef struct
 } nes_pad_key_s;
 
 
+typedef struct {
+    nes_pad_key_s key;
+    union {
+        struct {
+            uint8_t JOY_UP_RIGHT : 1;
+            uint8_t JOY_RIGHT_DOWN : 1;
+            uint8_t JOY_DOWN_LEFT : 1;
+            uint8_t JOY_LEFT_UP : 1;
+        };
+        uint8_t KEY_VALUE_EXT;
+    };
+} nes_pad_key_ext_s;
+
 extern nes_pad_key_s gamepad_p1;
 extern nes_pad_key_s gamepad_p2;
+
+extern nes_pad_key_ext_s gamepad_p1_prev;
 
 void input_init();
 void input_clear();

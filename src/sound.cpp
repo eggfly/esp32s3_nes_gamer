@@ -161,7 +161,8 @@ void do_audio_frame()
         int i = n;
         while (i--)
         {
-            int16_t a = (*(--mono_ptr) >> 2);
+            // EGGFLY: WHAT controls VOLUME?
+            int16_t a = (*(--mono_ptr) >> 6);
             *(--stereo_ptr) = a;
             *(--stereo_ptr) = a;
         }

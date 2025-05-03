@@ -118,6 +118,7 @@ void display_init()
 #endif
 
 #endif
+    Serial.println("Initializing RGB Panel...OK");
 }
 
 #endif
